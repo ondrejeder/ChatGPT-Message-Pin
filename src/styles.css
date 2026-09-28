@@ -238,13 +238,14 @@
   margin: 4px 0;
 }
 
-.cgmb-message-actions-inline {
-  margin: 0;
-}
-
 .cgmb-bookmark-button {
   color: currentColor;
   opacity: 0.66;
+}
+
+.cgmb-bookmark-button-inline {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .cgmb-bookmark-button:hover,

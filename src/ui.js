@@ -185,17 +185,17 @@
     }
 
     messageElement.dataset.cgmbInitialized = "true";
-    const container = document.createElement("span");
-    container.className = "cgmb-message-actions";
     const button = createButton("cgmb-bookmark-button", "Bookmark this message", "bookmark");
     button.setAttribute("aria-pressed", "false");
-    container.append(button);
 
     const existingAction = messageElement.querySelector(root.messages.SELECTORS.actionButton);
     if (existingAction?.parentElement) {
-      container.classList.add("cgmb-message-actions-inline");
-      existingAction.parentElement.append(container);
+      button.classList.add("cgmb-bookmark-button-inline");
+      existingAction.insertAdjacentElement("afterend", button);
     } else {
+      const container = document.createElement("span");
+      container.className = "cgmb-message-actions";
+      container.append(button);
       messageElement.append(container);
     }
 

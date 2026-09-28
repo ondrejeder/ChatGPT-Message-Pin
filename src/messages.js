@@ -6,7 +6,9 @@
   // Keep ChatGPT-specific DOM knowledge here. These selectors are intentionally
   // based on semantic attributes first; update this one module if the site changes.
   const SELECTORS = Object.freeze({
-    message: '[data-message-author-role="user"], [data-message-author-role="assistant"]',
+    turn: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id]',
+    role: '[data-message-author-role="user"], [data-message-author-role="assistant"]',
+    message: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id], [data-message-author-role="user"], [data-message-author-role="assistant"]',
     messageId: "[data-message-id]",
     actionButton: '[data-testid$="-turn-action-button"]',
     excludedText: "button, svg, script, style, textarea, input, [role=button], .cgmb-message-actions"
@@ -24,18 +26,25 @@
   }
 
   function findMessages(rootNode = document) {
-    const candidates = Array.from(rootNode.querySelectorAll(SELECTORS.message));
-    return candidates.filter((element) => {
-      const parentMessage = element.parentElement?.closest(SELECTORS.message);
-      return !parentMessage;
-    });
+    const turns = Array.from(rootNode.querySelectorAll(SELECTORS.turn))
+      .filter((element) => getMessageRole(element));
+    if (turns.length) {
+      return turns;
+    }
+
+    const roleElements = Array.from(rootNode.querySelectorAll(SELECTORS.role));
+    return roleElements.filter((element) => !element.parentElement?.closest(SELECTORS.role));
+  }
+
+  function getRoleElement(element) {
+    return element.matches(SELECTORS.role)
+      ? element
+      : element.querySelector(SELECTORS.role);
   }
 
   function getMessageRole(element) {
-    const roleElement = element.matches(SELECTORS.message)
-      ? element
-      : element.querySelector(SELECTORS.message);
-    const role = roleElement?.getAttribute("data-message-author-role");
+    const turnRole = element.getAttribute("data-turn");
+    const role = turnRole || getRoleElement(element)?.getAttribute("data-message-author-role");
     return role === "user" || role === "assistant" ? role : null;
   }
 
@@ -47,16 +56,22 @@
   }
 
   function getMessageText(element) {
-    const clone = element.cloneNode(true);
+    const contentElement = getRoleElement(element) || element;
+    const clone = contentElement.cloneNode(true);
     clone.querySelectorAll(SELECTORS.excludedText).forEach((node) => node.remove());
     return normalizeText(clone.textContent);
   }
 
   function getMessageStableId(element) {
+    const roleElement = getRoleElement(element);
     const idElement = element.hasAttribute("data-message-id")
       ? element
-      : element.querySelector(SELECTORS.messageId);
-    return idElement?.getAttribute("data-message-id") || null;
+      : roleElement?.hasAttribute("data-message-id")
+        ? roleElement
+        : element.querySelector(SELECTORS.messageId);
+    return idElement?.getAttribute("data-message-id")
+      || element.getAttribute("data-turn-id")
+      || null;
   }
 
   function hashText(text) {

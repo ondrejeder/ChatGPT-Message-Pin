@@ -22,14 +22,18 @@
     <span id="fixture-conversation">test-conversation</span>
   </div>
   <main id="fixture-messages">
-    <article class="fixture-message" data-message-author-role="user" data-message-id="user-1">
-      <p>Ok, Please investigate the BPR loading crash. This message should generate a concise bookmark title.</p>
+    <section class="fixture-message" data-turn="user" data-turn-id="user-1" data-testid="conversation-turn-1">
+      <div data-message-author-role="user" data-message-id="user-1">
+        <p>Ok, Please investigate the BPR loading crash. This message should generate a concise bookmark title.</p>
+      </div>
       <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
-    </article>
-    <article class="fixture-message" data-message-author-role="assistant" data-message-id="assistant-1">
-      <p>The game now reaches the main menu, but loading a race still crashes after the renderer initializes.</p>
+    </section>
+    <section class="fixture-message" data-turn="assistant" data-turn-id="assistant-1" data-testid="conversation-turn-2">
+      <div data-message-author-role="assistant" data-message-id="assistant-1">
+        <p>The game now reaches the main menu, but loading a race still crashes after the renderer initializes.</p>
+      </div>
       <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
-    </article>
+    </section>
   </main>
 
   <script>
@@ -75,7 +79,7 @@
       document.querySelector("#fixture-messages").append(document.createComment("SPA navigation mutation"));
     });
     document.querySelector("#fixture-rerender").addEventListener("click", () => {
-      const actions = document.querySelector('[data-message-id="assistant-1"] .fixture-actions');
+      const actions = document.querySelector('[data-turn-id="assistant-1"] .fixture-actions');
       const copy = document.createElement("button");
       copy.type = "button";
       copy.dataset.testid = "copy-turn-action-button";
