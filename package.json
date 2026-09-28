@@ -1,0 +1,16 @@
+{
+  "name": "chatgpt-message-bookmarks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development commands for Message Bookmarks for ChatGPT.",
+  "scripts": {
+    "test": "node tests/test-logic.js && node tests/check-package.js",
+    "test:ui:server": "node tests/fixture-server.js",
+    "lint": "web-ext lint --warnings-as-errors",
+    "start": "web-ext run",
+    "build": "web-ext build --overwrite-dest"
+  },
+  "devDependencies": {
+    "web-ext": "^9.2.0"
+  }
+}

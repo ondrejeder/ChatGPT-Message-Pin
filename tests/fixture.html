@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGMB UI fixture</title>
+  <link rel="stylesheet" href="/src/styles.css">
+  <style>
+    body { margin: 0; background: #fff; color: #202123; font: 16px/1.5 system-ui, sans-serif; }
+    html.dark body { background: #212121; color: #ececec; }
+    main { width: min(760px, calc(100% - 48px)); margin: 48px auto; }
+    .fixture-toolbar { position: sticky; top: 0; z-index: 3; padding: 12px; background: #eee; }
+    .fixture-message { position: relative; margin: 20px 0; padding: 18px; border: 1px solid #ccc; border-radius: 12px; }
+    .fixture-actions { display: flex; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="fixture-toolbar">
+    <button id="fixture-switch" type="button">Switch conversation</button>
+    <button id="fixture-rerender" type="button">Rerender assistant actions</button>
+    <button id="fixture-theme" type="button">Toggle dark theme</button>
+    <span id="fixture-conversation">test-conversation</span>
+  </div>
+  <main id="fixture-messages">
+    <article class="fixture-message" data-message-author-role="user" data-message-id="user-1">
+      <p>Ok, Please investigate the BPR loading crash. This message should generate a concise bookmark title.</p>
+      <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
+    </article>
+    <article class="fixture-message" data-message-author-role="assistant" data-message-id="assistant-1">
+      <p>The game now reaches the main menu, but loading a race still crashes after the renderer initializes.</p>
+      <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
+    </article>
+  </main>
+
+  <script>
+    (function createBrowserMock() {
+      const listeners = [];
+      const stores = { sync: Object.create(null), local: Object.create(null) };
+      function area(name) {
+        return {
+          async get(key) { return { [key]: stores[name][key] }; },
+          async set(values) {
+            const changes = {};
+            Object.entries(values).forEach(([key, value]) => {
+              changes[key] = { oldValue: stores[name][key], newValue: value };
+              stores[name][key] = value;
+            });
+            listeners.forEach((listener) => listener(changes, name));
+          },
+          async remove(keys) {
+            for (const key of Array.isArray(keys) ? keys : [keys]) {
+              delete stores[name][key];
+            }
+          }
+        };
+      }
+      window.browser = {
+        storage: {
+          sync: area("sync"),
+          local: area("local"),
+          onChanged: { addListener(listener) { listeners.push(listener); } }
+        }
+      };
+    })();
+  </script>
+  <script src="/src/storage.js"></script>
+  <script src="/src/messages.js"></script>
+  <script src="/src/ui.js"></script>
+  <script src="/src/content.js"></script>
+  <script>
+    document.querySelector("#fixture-switch").addEventListener("click", () => {
+      const next = location.pathname.endsWith("second-conversation") ? "test-conversation" : "second-conversation";
+      history.pushState({}, "", `/c/${next}`);
+      document.querySelector("#fixture-conversation").textContent = next;
+      document.querySelector("#fixture-messages").append(document.createComment("SPA navigation mutation"));
+    });
+    document.querySelector("#fixture-rerender").addEventListener("click", () => {
+      const actions = document.querySelector('[data-message-id="assistant-1"] .fixture-actions');
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.dataset.testid = "copy-turn-action-button";
+      copy.textContent = "Copy rerendered";
+      actions.replaceChildren(copy);
+    });
+    document.querySelector("#fixture-theme").addEventListener("click", () => {
+      const html = document.documentElement;
+      const dark = !html.classList.contains("dark");
+      html.classList.toggle("dark", dark);
+      html.classList.toggle("light", !dark);
+    });
+  </script>
+</body>
+</html>
