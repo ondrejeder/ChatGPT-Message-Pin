@@ -8,10 +8,13 @@
   const SELECTORS = Object.freeze({
     turn: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id]',
     role: '[data-message-author-role="user"], [data-message-author-role="assistant"]',
-    message: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id], [data-message-author-role="user"], [data-message-author-role="assistant"]',
+    modernUser: '[data-content-search-unit-key$=":user"]',
+    modernAssistant: '[data-content-search-unit-key$=":assistant"], [data-content-search-turn-key]',
+    message: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id], [data-message-author-role="user"], [data-message-author-role="assistant"], [data-content-search-unit-key$=":user"], [data-content-search-unit-key$=":assistant"], [data-content-search-turn-key]',
     messageId: "[data-message-id]",
     actionButton: '[data-testid$="-turn-action-button"]',
-    excludedText: "button, svg, script, style, textarea, input, [role=button], .cgmb-message-actions"
+    actionBar: ".turn-action-controls",
+    excludedText: "button, svg, script, style, textarea, input, [role=button], .turn-action-controls, .cgmb-message-actions"
   });
 
   function getConversationId(url = global.location?.href || "") {
@@ -26,10 +29,27 @@
   }
 
   function findMessages(rootNode = document) {
-    const turns = Array.from(rootNode.querySelectorAll(SELECTORS.turn))
-      .filter((element) => getMessageRole(element));
-    if (turns.length) {
-      return turns;
+    const candidates = Array.from(rootNode.querySelectorAll(SELECTORS.turn));
+
+    rootNode.querySelectorAll(SELECTORS.actionBar).forEach((actionBar) => {
+      const modernMessage = actionBar.closest(
+        `${SELECTORS.modernUser}, ${SELECTORS.modernAssistant}`
+      );
+      if (modernMessage) {
+        candidates.push(modernMessage);
+      }
+    });
+
+    const messages = Array.from(new Set(candidates))
+      .filter((element) => getMessageRole(element))
+      .sort((left, right) => {
+        if (left === right) {
+          return 0;
+        }
+        return left.compareDocumentPosition(right) & 4 ? -1 : 1;
+      });
+    if (messages.length) {
+      return messages;
     }
 
     const roleElements = Array.from(rootNode.querySelectorAll(SELECTORS.role));
@@ -44,7 +64,19 @@
 
   function getMessageRole(element) {
     const turnRole = element.getAttribute("data-turn");
-    const role = turnRole || getRoleElement(element)?.getAttribute("data-message-author-role");
+    const unitKey = element.getAttribute("data-content-search-unit-key") || "";
+    let modernRole = null;
+    if (unitKey.endsWith(":user") || element.matches(SELECTORS.modernUser)) {
+      modernRole = "user";
+    } else if (unitKey.endsWith(":assistant")) {
+      modernRole = "assistant";
+    } else if (element.matches("[data-content-search-turn-key]")
+      && !element.querySelector('[data-user-message-bubble="true"]')) {
+      modernRole = "assistant";
+    }
+    const role = turnRole
+      || getRoleElement(element)?.getAttribute("data-message-author-role")
+      || modernRole;
     return role === "user" || role === "assistant" ? role : null;
   }
 
@@ -56,7 +88,9 @@
   }
 
   function getMessageText(element) {
-    const contentElement = getRoleElement(element) || element;
+    const contentElement = getRoleElement(element)
+      || element.querySelector('[data-user-message-bubble="true"]')
+      || element;
     const clone = contentElement.cloneNode(true);
     clone.querySelectorAll(SELECTORS.excludedText).forEach((node) => node.remove());
     return normalizeText(clone.textContent);
@@ -71,7 +105,14 @@
         : element.querySelector(SELECTORS.messageId);
     return idElement?.getAttribute("data-message-id")
       || element.getAttribute("data-turn-id")
+      || element.getAttribute("data-content-search-unit-key")
+      || element.getAttribute("data-content-search-turn-key")
       || null;
+  }
+
+  function getActionButton(element) {
+    return element.querySelector(SELECTORS.actionButton)
+      || element.querySelector(`${SELECTORS.actionBar} button`);
   }
 
   function hashText(text) {
@@ -148,6 +189,7 @@
     getMessageRole,
     getMessageText,
     getMessageStableId,
+    getActionButton,
     getMessageInfo,
     hashText,
     matchesBookmark,

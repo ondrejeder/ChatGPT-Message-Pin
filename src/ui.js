@@ -188,7 +188,7 @@
     const button = createButton("cgmb-bookmark-button", "Bookmark this message", "bookmark");
     button.setAttribute("aria-pressed", "false");
 
-    const existingAction = messageElement.querySelector(root.messages.SELECTORS.actionButton);
+    const existingAction = root.messages.getActionButton(messageElement);
     if (existingAction?.parentElement) {
       button.classList.add("cgmb-bookmark-button-inline");
       existingAction.insertAdjacentElement("afterend", button);

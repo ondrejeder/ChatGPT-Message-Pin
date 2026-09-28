@@ -22,17 +22,17 @@
     <span id="fixture-conversation">test-conversation</span>
   </div>
   <main id="fixture-messages">
-    <section class="fixture-message" data-turn="user" data-turn-id="user-1" data-testid="conversation-turn-1">
-      <div data-message-author-role="user" data-message-id="user-1">
+    <section class="fixture-message" data-content-search-unit-key="fallback_turn_1:0:user">
+      <div data-user-message-bubble="true">
         <p>Ok, Please investigate the BPR loading crash. This message should generate a concise bookmark title.</p>
       </div>
-      <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
+      <div class="fixture-actions turn-action-controls"><span class="contents"><button type="button" aria-label="Zkopírovat zprávu">Copy</button></span></div>
     </section>
-    <section class="fixture-message" data-turn="assistant" data-turn-id="assistant-1" data-testid="conversation-turn-2">
-      <div data-message-author-role="assistant" data-message-id="assistant-1">
+    <section class="fixture-message" data-content-search-turn-key="fallback_turn_1">
+      <div class="assistant-content">
         <p>The game now reaches the main menu, but loading a race still crashes after the renderer initializes.</p>
       </div>
-      <div class="fixture-actions"><button type="button" data-testid="copy-turn-action-button">Copy</button></div>
+      <div class="fixture-actions turn-action-controls"><div><span class="contents"><button type="button" aria-label="Zkopírovat odpověď">Copy</button></span></div></div>
     </section>
   </main>
 
@@ -79,12 +79,15 @@
       document.querySelector("#fixture-messages").append(document.createComment("SPA navigation mutation"));
     });
     document.querySelector("#fixture-rerender").addEventListener("click", () => {
-      const actions = document.querySelector('[data-turn-id="assistant-1"] .fixture-actions');
+      const actions = document.querySelector('[data-content-search-turn-key="fallback_turn_1"] .fixture-actions');
       const copy = document.createElement("button");
       copy.type = "button";
-      copy.dataset.testid = "copy-turn-action-button";
+      copy.setAttribute("aria-label", "Zkopírovat odpověď");
       copy.textContent = "Copy rerendered";
-      actions.replaceChildren(copy);
+      const wrapper = document.createElement("span");
+      wrapper.className = "contents";
+      wrapper.append(copy);
+      actions.replaceChildren(wrapper);
     });
     document.querySelector("#fixture-theme").addEventListener("click", () => {
       const html = document.documentElement;
