@@ -233,10 +233,48 @@
 }
 
 .cgmb-message-actions {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   margin: 4px 0;
 }
+
+.cgmb-new-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cgmb-new-chat-row > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cgmb-new-chat-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  border-radius: 7px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cgmb-new-chat-tab:hover { background: rgba(128, 128, 128, 0.2); }
+.cgmb-new-chat-tab:focus-visible { outline: 2px solid currentColor; }
+.cgmb-new-chat-tab svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.cgmb-bookmark-button[hidden], .cgmb-toggle[hidden] { display: none; }
 
 .cgmb-bookmark-button {
   color: currentColor;

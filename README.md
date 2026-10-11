@@ -5,10 +5,12 @@ A small, third-party Firefox extension for bookmarking individual user and assis
 ## Features
 
 - Bookmark individual user and assistant messages.
+- Open a new chat in another browser tab with the small icon beside New chat.
 - View only the bookmarks belonging to the currently open conversation.
 - Navigate back to a message with smooth scrolling and a brief highlight.
 - Rename and remove bookmarks from a right-hand panel.
 - Survive page reloads and ChatGPT single-page navigation.
+- Support both ordinary conversations and conversations inside projects.
 - Sync between desktop Firefox profiles when Firefox Add-ons Sync is enabled.
 - Fall back safely to local extension storage when sync storage is unavailable or full.
 - Work in light and dark themes with keyboard-accessible controls.

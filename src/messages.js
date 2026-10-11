@@ -6,21 +6,21 @@
   // Keep ChatGPT-specific DOM knowledge here. These selectors are intentionally
   // based on semantic attributes first; update this one module if the site changes.
   const SELECTORS = Object.freeze({
-    turn: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id]',
+    turn: '[data-testid^="conversation-turn-"], [data-turn][data-turn-id]',
     role: '[data-message-author-role="user"], [data-message-author-role="assistant"]',
     modernUser: '[data-content-search-unit-key$=":user"]',
     modernAssistant: '[data-content-search-unit-key$=":assistant"], [data-content-search-turn-key]',
-    message: '[data-testid^="conversation-turn-"][data-turn], [data-turn][data-turn-id], [data-message-author-role="user"], [data-message-author-role="assistant"], [data-content-search-unit-key$=":user"], [data-content-search-unit-key$=":assistant"], [data-content-search-turn-key]',
+    message: '[data-testid^="conversation-turn-"], [data-turn][data-turn-id], [data-message-author-role="user"], [data-message-author-role="assistant"], [data-content-search-unit-key$=":user"], [data-content-search-unit-key$=":assistant"], [data-content-search-turn-key], [data-user-message-bubble="true"]',
     messageId: "[data-message-id]",
     actionButton: '[data-testid$="-turn-action-button"]',
     actionBar: ".turn-action-controls",
-    excludedText: "button, svg, script, style, textarea, input, [role=button], .turn-action-controls, .cgmb-message-actions"
+    excludedText: "button, svg, script, style, textarea, input, [role=button], .sr-only, .turn-action-controls, .cgmb-message-actions"
   });
 
   function getConversationId(url = global.location?.href || "") {
     try {
       const parsed = new URL(url);
-      const match = parsed.pathname.match(/^\/c\/([^/?#]+)/);
+      const match = parsed.pathname.match(/(?:^|\/)c\/([^/?#]+)/);
       return match ? decodeURIComponent(match[1]) : null;
     } catch (error) {
       console.warn("[CGMB] Could not parse the current URL.", error);
@@ -29,7 +29,9 @@
   }
 
   function findMessages(rootNode = document) {
-    const candidates = Array.from(rootNode.querySelectorAll(SELECTORS.turn));
+    const candidates = Array.from(rootNode.querySelectorAll(
+      `${SELECTORS.turn}, ${SELECTORS.modernUser}, ${SELECTORS.modernAssistant}`
+    )).filter((element) => getMessageRole(element));
 
     rootNode.querySelectorAll(SELECTORS.actionBar).forEach((actionBar) => {
       const modernMessage = actionBar.closest(
@@ -40,8 +42,16 @@
       }
     });
 
+    rootNode.querySelectorAll(`${SELECTORS.role}, [data-user-message-bubble="true"]`).forEach((element) => {
+      if (!candidates.some((candidate) => candidate.contains(element))) {
+        candidates.push(element);
+      }
+    });
+
     const messages = Array.from(new Set(candidates))
       .filter((element) => getMessageRole(element))
+      .filter((element, index, all) => !all.some((other, otherIndex) =>
+        index !== otherIndex && other.contains(element) && getMessageRole(other) === getMessageRole(element)))
       .sort((left, right) => {
         if (left === right) {
           return 0;
@@ -66,7 +76,7 @@
     const turnRole = element.getAttribute("data-turn");
     const unitKey = element.getAttribute("data-content-search-unit-key") || "";
     let modernRole = null;
-    if (unitKey.endsWith(":user") || element.matches(SELECTORS.modernUser)) {
+    if (unitKey.endsWith(":user") || element.matches('[data-user-message-bubble="true"]')) {
       modernRole = "user";
     } else if (unitKey.endsWith(":assistant")) {
       modernRole = "assistant";
@@ -105,8 +115,8 @@
         : element.querySelector(SELECTORS.messageId);
     return idElement?.getAttribute("data-message-id")
       || element.getAttribute("data-turn-id")
-      || element.getAttribute("data-content-search-unit-key")
-      || element.getAttribute("data-content-search-turn-key")
+      || (element.getAttribute("data-chatgpt-search-message-ids")
+        || element.closest('[data-chatgpt-search-message-ids]')?.getAttribute("data-chatgpt-search-message-ids"))?.trim().split(/\s+/)[0]
       || null;
   }
 

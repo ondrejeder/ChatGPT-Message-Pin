@@ -21,6 +21,7 @@ const messages = context.CGMB.messages;
 assert.equal(messages.getConversationId(), "current-conversation");
 assert.equal(messages.getConversationId("https://chatgpt.com/"), null);
 assert.equal(messages.getConversationId("https://chatgpt.com/c/a%20b?x=1"), "a b");
+assert.equal(messages.getConversationId("https://chatgpt.com/g/g-p-project/c/project-chat"), "project-chat");
 assert.equal(messages.hashText(" Hello   WORLD "), messages.hashText("hello world"));
 assert.notEqual(messages.hashText("one"), messages.hashText("two"));
 assert.equal(messages.createTitle("Ok, This is a useful first sentence. More details follow."), "This is a useful first sentence.");

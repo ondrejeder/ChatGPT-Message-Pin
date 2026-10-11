@@ -31,6 +31,7 @@
   }
 
   function refreshControls() {
+    root.ui.refreshNewChatLinks();
     const messages = root.messages.findMessages();
     messages.forEach((messageElement) => {
       const button = root.ui.addMessageControl(messageElement, { onToggleBookmark });
@@ -222,6 +223,10 @@
     const observer = new MutationObserver((mutations) => {
       const relevant = mutations.some((mutation) => {
         if (mutation.target.nodeType === Node.ELEMENT_NODE
+          && mutation.target.closest?.('.cgmb-panel, .cgmb-message-actions, .cgmb-new-chat-row')) {
+          return false;
+        }
+        if (mutation.target.nodeType === Node.ELEMENT_NODE
           && mutation.target.closest?.(root.messages.SELECTORS.message)) {
           return true;
         }
@@ -231,14 +236,23 @@
           }
           return node.matches?.(root.messages.SELECTORS.message)
             || node.querySelector?.(root.messages.SELECTORS.message)
-            || node.querySelector?.("main");
+            || node.querySelector?.("main")
+            || node.matches?.('nav, aside, button, a')
+            || node.querySelector?.('nav, aside, button, a');
         });
       });
       if (relevant || root.messages.getConversationId() !== state.conversationId) {
         scheduleRefresh();
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    // pushState is page-world-only; polling the URL catches navigation even
+    // when React changes history without a matching message mutation.
+    global.setInterval(() => {
+      if (root.messages.getConversationId() !== state.conversationId) {
+        loadConversation();
+      }
+    }, 700);
   }
 
   function handleKeydown(event) {

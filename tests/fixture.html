@@ -16,20 +16,24 @@
 </head>
 <body>
   <div class="fixture-toolbar">
+    <nav aria-label="Historie chatu"><button type="button">Nový chat</button></nav>
     <button id="fixture-switch" type="button">Switch conversation</button>
     <button id="fixture-rerender" type="button">Rerender assistant actions</button>
     <button id="fixture-theme" type="button">Toggle dark theme</button>
     <span id="fixture-conversation">test-conversation</span>
   </div>
   <main id="fixture-messages">
-    <section class="fixture-message" data-content-search-unit-key="fallback_turn_1:0:user">
+    <section class="fixture-message" data-content-search-turn-key="fallback-turn-1">
+    <div data-chatgpt-search-message-ids="user-1">
+    <div data-content-search-unit-key="fallback-turn-1:0:user">
       <div data-user-message-bubble="true">
         <p>Ok, Please investigate the BPR loading crash. This message should generate a concise bookmark title.</p>
       </div>
       <div class="fixture-actions turn-action-controls"><span class="contents"><button type="button" aria-label="Zkopírovat zprávu">Copy</button></span></div>
-    </section>
-    <section class="fixture-message" data-content-search-turn-key="fallback_turn_1">
-      <div class="assistant-content">
+    </div>
+    </div>
+      <div class="assistant-content" data-content-search-unit-key="fallback-turn-1:3:assistant" data-chatgpt-search-message-ids="assistant-1 assistant-1">
+        <h4 class="sr-only" style="position:absolute;opacity:0">ChatGPT řekl:</h4>
         <p>The game now reaches the main menu, but loading a race still crashes after the renderer initializes.</p>
       </div>
       <div class="fixture-actions turn-action-controls"><div><span class="contents"><button type="button" aria-label="Zkopírovat odpověď">Copy</button></span></div></div>
@@ -39,7 +43,8 @@
   <script>
     (function createBrowserMock() {
       const listeners = [];
-      const stores = { sync: Object.create(null), local: Object.create(null) };
+      const stores = JSON.parse(localStorage.getItem("cgmb-fixture-stores") || "null")
+        || { sync: Object.create(null), local: Object.create(null) };
       function area(name) {
         return {
           async get(key) { return { [key]: stores[name][key] }; },
@@ -49,12 +54,14 @@
               changes[key] = { oldValue: stores[name][key], newValue: value };
               stores[name][key] = value;
             });
+            localStorage.setItem("cgmb-fixture-stores", JSON.stringify(stores));
             listeners.forEach((listener) => listener(changes, name));
           },
           async remove(keys) {
             for (const key of Array.isArray(keys) ? keys : [keys]) {
               delete stores[name][key];
             }
+            localStorage.setItem("cgmb-fixture-stores", JSON.stringify(stores));
           }
         };
       }
@@ -79,7 +86,7 @@
       document.querySelector("#fixture-messages").append(document.createComment("SPA navigation mutation"));
     });
     document.querySelector("#fixture-rerender").addEventListener("click", () => {
-      const actions = document.querySelector('[data-content-search-turn-key="fallback_turn_1"] .fixture-actions');
+      const actions = document.querySelector('[data-content-search-turn-key="fallback-turn-1"] > .fixture-actions');
       const copy = document.createElement("button");
       copy.type = "button";
       copy.setAttribute("aria-label", "Zkopírovat odpověď");

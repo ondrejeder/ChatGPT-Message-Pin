@@ -7,7 +7,8 @@
     bookmark: "M6.75 4.75A1.75 1.75 0 0 1 8.5 3h7A1.75 1.75 0 0 1 17.25 4.75v16L12 17.45l-5.25 3.3v-16Z",
     edit: "m15.25 5.25 3.5 3.5M5 19l3.75-.75L19 8a1.75 1.75 0 0 0-3-1.25L5.75 17 5 19Z",
     remove: "M6 6l12 12M18 6 6 18",
-    close: "M6 6l12 12M18 6 6 18"
+    close: "M6 6l12 12M18 6 6 18",
+    newTab: "M14 3h7v7M21 3l-10 10M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"
   });
 
   function icon(name) {
@@ -188,16 +189,11 @@
     const button = createButton("cgmb-bookmark-button", "Bookmark this message", "bookmark");
     button.setAttribute("aria-pressed", "false");
 
-    const existingAction = root.messages.getActionButton(messageElement);
-    if (existingAction?.parentElement) {
-      button.classList.add("cgmb-bookmark-button-inline");
-      existingAction.insertAdjacentElement("afterend", button);
-    } else {
-      const container = document.createElement("span");
-      container.className = "cgmb-message-actions";
-      container.append(button);
-      messageElement.append(container);
-    }
+    // Own row avoids ChatGPT's hover-only opacity ancestors and action rerenders.
+    const container = document.createElement("span");
+    container.className = "cgmb-message-actions";
+    container.append(button);
+    messageElement.append(container);
 
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -205,6 +201,44 @@
       handlers.onToggleBookmark(messageElement);
     });
     return button;
+  }
+
+  function refreshNewChatLinks() {
+    const controls = Array.from(document.querySelectorAll('button, a'));
+    controls.filter((element) => {
+      if (element.closest('[class*="cgmb-"]')) {
+        return false;
+      }
+      const label = (element.getAttribute("aria-label") || element.textContent || "")
+        .replace(/\s+/g, " ").trim();
+      return /^(Nový chat|New chat)(?:\s*(?:Ctrl|Control|⌘).*)?$/i.test(label);
+    }).forEach((control) => {
+      let row = control.parentElement;
+      if (!row) {
+        return;
+      }
+      if (!row.classList.contains("cgmb-new-chat-row")) {
+        row = document.createElement("span");
+        row.className = "cgmb-new-chat-row";
+        control.before(row);
+        row.append(control);
+      }
+      if (row.querySelector(".cgmb-new-chat-tab")) {
+        return;
+      }
+      const link = document.createElement("a");
+      link.className = "cgmb-new-chat-tab";
+      link.href = "https://chatgpt.com/";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.title = "Nový chat v nové kartě";
+      link.setAttribute("aria-label", "Nový chat v nové kartě");
+      link.append(icon("newTab"));
+      // Prevent delegation to ChatGPT while retaining native link navigation.
+      link.addEventListener("click", (event) => event.stopPropagation());
+      link.addEventListener("auxclick", (event) => event.stopPropagation());
+      row.append(link);
+    });
   }
 
   function setMessageControlState(messageElement, isBookmarked) {
@@ -229,6 +263,7 @@
     setStatus,
     renderList,
     addMessageControl,
+    refreshNewChatLinks,
     setMessageControlState,
     highlightMessage
   };
