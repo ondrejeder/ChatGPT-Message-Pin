@@ -13,6 +13,7 @@
     panelOpen: false,
     refreshTimer: null,
     loadToken: 0,
+    navigationToken: 0,
     suppressStorageUntil: 0,
     shell: null
   };
@@ -132,6 +133,7 @@
           {
             id: makeId(),
             messageId: info.messageId,
+            turnKey: info.turnKey,
             messageHash: info.messageHash,
             messageIndex: info.messageIndex,
             role: info.role,
@@ -182,9 +184,21 @@
   }
 
   async function navigateToBookmark(bookmark) {
-    const element = root.messages.findMessageForBookmark(bookmark);
-    if (!element) {
+    const token = ++state.navigationToken;
+    const conversationId = state.conversationId;
+    const cancelled = () => token !== state.navigationToken
+      || conversationId !== root.messages.getConversationId();
+    const element = await root.messages.resolveBookmark(bookmark, cancelled);
+    if (!element || cancelled()) {
       return false;
+    }
+    // Upgrade old bookmarks after finding them without changing their labels.
+    const info = root.messages.getMessageInfo(element);
+    if (info.turnKey && bookmark.turnKey !== info.turnKey) {
+      state.bookmarks = state.bookmarks.map((entry) => entry.id === bookmark.id
+        ? { ...entry, turnKey: info.turnKey, messageId: info.messageId || entry.messageId }
+        : entry);
+      persistBookmarks().catch((error) => console.warn('[CGMB] Could not save navigation anchor.', error));
     }
     state.panelOpen = false;
     root.ui.setPanelOpen(state.shell, false);
@@ -284,6 +298,18 @@
       onClosePanel: closePanel
     });
     document.addEventListener("keydown", handleKeydown, true);
+    const cancelNavigation = (event) => {
+      if (event.isTrusted && !event.target.closest?.('.cgmb-panel')) {
+        state.navigationToken += 1;
+      }
+    };
+    document.addEventListener('wheel', cancelNavigation, { passive: true, capture: true });
+    document.addEventListener('touchstart', cancelNavigation, { passive: true, capture: true });
+    document.addEventListener('keydown', (event) => {
+      if (['Escape', 'PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+        cancelNavigation(event);
+      }
+    }, true);
     global.addEventListener("popstate", () => loadConversation());
     global.addEventListener("hashchange", () => loadConversation());
     global.addEventListener("pageshow", () => loadConversation(true));

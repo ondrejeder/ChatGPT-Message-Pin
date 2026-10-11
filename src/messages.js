@@ -140,6 +140,7 @@
     return {
       element,
       messageId: getMessageStableId(element),
+      turnKey: element.closest('[data-turn-key]')?.getAttribute('data-turn-key') || null,
       messageHash: hashText(text),
       messageIndex: allMessages.indexOf(element),
       role: getMessageRole(element),
@@ -170,6 +171,95 @@
       || infos.find((info) => bookmark.role === info.role && info.messageHash === bookmark.messageHash)?.element
       || infos.find((info) => matchesBookmark(info, bookmark, true))?.element
       || null;
+  }
+
+  function findTurnAnchor(bookmark) {
+    return Array.from(document.querySelectorAll('[data-turn-key]')).find((element) =>
+      element.getAttribute('data-turn-key') === (bookmark.turnKey || bookmark.messageId)) || null;
+  }
+
+  function getConversationScroller() {
+    let element = document.querySelector('[data-turn-key], [data-content-search-unit-key]');
+    while (element?.parentElement) {
+      element = element.parentElement;
+      if (/(auto|scroll)/.test(global.getComputedStyle(element).overflowY)
+        && element.scrollHeight > element.clientHeight) {
+        return element;
+      }
+    }
+    return document.scrollingElement;
+  }
+
+  async function resolveBookmark(bookmark, isCancelled = () => false) {
+    let found = findMessageForBookmark(bookmark);
+    if (found || isCancelled()) {
+      return found;
+    }
+    const scroller = getConversationScroller();
+    if (!scroller) {
+      return null;
+    }
+    const originalTop = scroller.scrollTop;
+    const deadline = Date.now() + 30000;
+    const pause = () => new Promise((resolve) => global.setTimeout(resolve, 180));
+    const jump = (top) => scroller.scrollTo({ top, behavior: 'instant' });
+    const anchor = findTurnAnchor(bookmark);
+    if (anchor) {
+      // An empty virtualized turn still has a measured height. Bringing its
+      // anchor into view asks ChatGPT to mount the message content again.
+      anchor.scrollIntoView({ block: 'center', behavior: 'instant' });
+      for (let retry = 0; retry < 10 && !isCancelled(); retry += 1) {
+        await pause();
+        found = findMessageForBookmark(bookmark);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    // Older bookmarks have no turn anchor. Scan overlapping viewports from
+    // the start so that lazy-loaded and unmounted messages can be rediscovered.
+    jump(0);
+    let stalled = 0;
+    let previousHeight = -1;
+    for (let step = 0; step < 140 && Date.now() < deadline && !isCancelled(); step += 1) {
+      await pause();
+      if (isCancelled()) {
+        break;
+      }
+      found = findMessageForBookmark(bookmark);
+      if (found) {
+        return found;
+      }
+      const targetAnchor = findTurnAnchor(bookmark);
+      if (targetAnchor) {
+        targetAnchor.scrollIntoView({ block: 'center', behavior: 'instant' });
+        await pause();
+        found = findMessageForBookmark(bookmark);
+        if (found) {
+          return found;
+        }
+      }
+      // Give prepended history a moment to settle before leaving the top.
+      if (step < 5) {
+        jump(0);
+        continue;
+      }
+      const before = scroller.scrollTop;
+      jump(before + Math.max(240, scroller.clientHeight * 0.65));
+      if (Math.abs(scroller.scrollTop - before) < 2 && previousHeight === scroller.scrollHeight) {
+        stalled += 1;
+        if (stalled >= 8) {
+          break;
+        }
+      } else {
+        stalled = 0;
+      }
+      previousHeight = scroller.scrollHeight;
+    }
+    if (!isCancelled()) {
+      jump(originalTop);
+    }
+    return null;
   }
 
   function truncate(text, maxLength) {
@@ -204,6 +294,7 @@
     hashText,
     matchesBookmark,
     findMessageForBookmark,
+    resolveBookmark,
     createPreview,
     createTitle
   };

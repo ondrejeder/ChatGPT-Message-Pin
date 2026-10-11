@@ -128,9 +128,22 @@
       shell.list.append(item);
 
       main.addEventListener("click", async () => {
-        const found = await handlers.onNavigate(bookmark);
-        missing.hidden = found;
-        item.classList.toggle("cgmb-item-not-found", !found);
+        main.disabled = true;
+        main.setAttribute('aria-busy', 'true');
+        missing.textContent = 'Loading message…';
+        missing.hidden = false;
+        try {
+          const found = await handlers.onNavigate(bookmark);
+          missing.hidden = found;
+          missing.textContent = 'Message could not be loaded. Try again.';
+          item.classList.toggle("cgmb-item-not-found", !found);
+        } catch (error) {
+          missing.textContent = 'Message could not be loaded. Try again.';
+          console.warn('[CGMB] Navigation failed.', error);
+        } finally {
+          main.disabled = false;
+          main.removeAttribute('aria-busy');
+        }
       });
 
       remove.addEventListener("click", () => handlers.onRemove(bookmark.id));

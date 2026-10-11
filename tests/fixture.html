@@ -20,10 +20,11 @@
     <button id="fixture-switch" type="button">Switch conversation</button>
     <button id="fixture-rerender" type="button">Rerender assistant actions</button>
     <button id="fixture-theme" type="button">Toggle dark theme</button>
+    <button id="fixture-virtualize" type="button">Unmount messages and scroll away</button>
     <span id="fixture-conversation">test-conversation</span>
   </div>
   <main id="fixture-messages">
-    <section class="fixture-message" data-content-search-turn-key="fallback-turn-1">
+    <section class="fixture-message" data-content-search-turn-key="fallback-turn-1" data-turn-key="fixture-turn-1">
     <div data-chatgpt-search-message-ids="user-1">
     <div data-content-search-unit-key="fallback-turn-1:0:user">
       <div data-user-message-bubble="true">
@@ -79,6 +80,27 @@
   <script src="/src/ui.js"></script>
   <script src="/src/content.js"></script>
   <script>
+    document.querySelector('#fixture-virtualize').addEventListener('click', () => {
+      const turn = document.querySelector('[data-turn-key="fixture-turn-1"]');
+      const content = Array.from(turn.childNodes);
+      const height = turn.getBoundingClientRect().height;
+      turn.replaceChildren();
+      turn.style.minHeight = `${height}px`;
+      const spacer = document.createElement('div');
+      spacer.style.height = '6000px';
+      document.querySelector('main').append(spacer);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setTimeout(() => {
+            turn.append(...content);
+            turn.style.minHeight = '';
+            observer.disconnect();
+          }, 350);
+        }
+      });
+      observer.observe(turn);
+    });
     document.querySelector("#fixture-switch").addEventListener("click", () => {
       const next = location.pathname.endsWith("second-conversation") ? "test-conversation" : "second-conversation";
       history.pushState({}, "", `/c/${next}`);
